@@ -24,7 +24,12 @@ const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin })
   const handleCopy = () => {
     let textToCopy = item.content;
     if (item.category === CategoryEnum.REGISTRY) {
-       textToCopy = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n"${item.title === '@' || item.title === '(Default)' ? '@' : item.title}"=${item.registryType === 'REG_DWORD' ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}` : `"${item.content}"`}`;
+       const valueName = item.registryName || item.title;
+       const name = valueName === '@' || valueName === '(Default)' ? '@' : `"${valueName}"`;
+       const value = item.registryType === 'REG_DWORD'
+         ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}`
+         : `"${item.content}"`;
+       textToCopy = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n${name}=${value}`;
     }
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
@@ -100,36 +105,58 @@ const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin })
 
           {/* Registry Metadata */}
           {item.category === CategoryEnum.REGISTRY && (
-            <div className="bg-slate-900/80 rounded-lg border border-pink-900/30 p-4 font-mono text-sm">
-                <div className="mb-2">
-                    <span className="text-pink-500 font-bold">Path:</span> <span className="text-slate-300 break-all">{item.registryPath}</span>
-                </div>
-                <div>
-                    <span className="text-pink-500 font-bold">Type:</span> <span className="text-slate-300">{item.registryType}</span>
+            <div className="bg-slate-900/80 rounded-lg border border-pink-900/30 p-4 font-mono text-sm space-y-2">
+                <div className="grid grid-cols-[100px_1fr] gap-2">
+                    <span className="text-pink-500 font-bold">Path:</span>
+                    <span className="text-slate-300 break-all">{item.registryPath || '-'}</span>
+
+                    <span className="text-pink-500 font-bold">Value Name:</span>
+                    <span className="text-slate-300">{item.registryName || item.title || '-'}</span>
+
+                    <span className="text-pink-500 font-bold">Type:</span>
+                    <span className="text-pink-400">{item.registryType || 'REG_SZ'}</span>
+
+                    <span className="text-pink-500 font-bold">Value:</span>
+                    <span className="text-green-400 break-all">{item.content || '-'}</span>
                 </div>
             </div>
           )}
 
-          {/* Main Content Area */}
-          <div className="relative group">
-             <div className="absolute right-4 top-4 z-10 flex gap-2">
-                <button
-                  onClick={handleCopy}
-                  className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg backdrop-blur-sm border border-slate-600 transition-all shadow-lg"
-                  title="Copier"
-                >
-                  {copied ? <Check size={18} className="text-green-400"/> : <Copy size={18} />}
-                </button>
-             </div>
+          {/* Main Content Area - Skip for Registry since it's shown above */}
+          {item.category !== CategoryEnum.REGISTRY && (
+            <div className="relative group">
+               <div className="absolute right-4 top-4 z-10 flex gap-2">
+                  <button
+                    onClick={handleCopy}
+                    className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg backdrop-blur-sm border border-slate-600 transition-all shadow-lg"
+                    title="Copier"
+                  >
+                    {copied ? <Check size={18} className="text-green-400"/> : <Copy size={18} />}
+                  </button>
+               </div>
 
-             <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden text-sm md:text-base">
-               <pre className={`${getLanguageClass()} !m-0 !p-6 !bg-transparent`}>
-                 <code className={getLanguageClass()}>
-                   {item.content}
-                 </code>
-               </pre>
-             </div>
-          </div>
+               <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden text-sm md:text-base">
+                 <pre className={`${getLanguageClass()} !m-0 !p-6 !bg-transparent`}>
+                   <code className={getLanguageClass()}>
+                     {item.content}
+                   </code>
+                 </pre>
+               </div>
+            </div>
+          )}
+
+          {/* Copy button for Registry */}
+          {item.category === CategoryEnum.REGISTRY && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-600 transition-all"
+              >
+                {copied ? <Check size={18} className="text-green-400"/> : <Copy size={18} />}
+                {copied ? 'Copié!' : 'Copier le fichier .reg'}
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
