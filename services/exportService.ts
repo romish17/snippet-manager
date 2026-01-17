@@ -53,10 +53,11 @@ export const downloadSingleItem = (item: Item) => {
   // Although usually Registry items go through generateRegFile which groups them.
   // This fallback ensures individual registry download is valid format.
   if (item.category === CategoryEnum.REGISTRY && !content.startsWith('Windows Registry')) {
-     const value = item.registryType === 'REG_DWORD' 
-        ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}` 
+     const value = item.registryType === 'REG_DWORD'
+        ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}`
         : `"${item.content.replace(/"/g, '\\"')}"`;
-     const name = item.title === '(Default)' || item.title === '@' ? '@' : `"${item.title}"`;
+     const valueName = item.registryName || item.title;
+     const name = valueName === '(Default)' || valueName === '@' ? '@' : `"${valueName}"`;
      content = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n${name}=${value}`;
   }
 
@@ -86,10 +87,11 @@ export const generateZipArchive = async (items: Item[]) => {
     
     // Format Registry items inside zip properly
     if (item.category === CategoryEnum.REGISTRY) {
-       const value = item.registryType === 'REG_DWORD' 
-        ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}` 
+       const value = item.registryType === 'REG_DWORD'
+        ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}`
         : `"${item.content.replace(/"/g, '\\"')}"`;
-       const name = item.title === '(Default)' || item.title === '@' ? '@' : `"${item.title}"`;
+       const valueName = item.registryName || item.title;
+       const name = valueName === '(Default)' || valueName === '@' ? '@' : `"${valueName}"`;
        content = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n${name}=${value}`;
     }
 
@@ -127,8 +129,9 @@ export const generateRegFile = (items: Item[]) => {
       } else {
         value = `"${item.content}"`;
       }
-      
-      const name = item.title === '(Default)' || item.title === '@' ? '@' : `"${item.title}"`;
+
+      const valueName = item.registryName || item.title;
+      const name = valueName === '(Default)' || valueName === '@' ? '@' : `"${valueName}"`;
       content += `${name}=${value}\n`;
     });
     content += "\n";
@@ -157,9 +160,10 @@ export const generatePs1File = (items: Item[]) => {
       .replace('HKEY_USERS', 'HKU:')
       .replace('HKEY_CURRENT_CONFIG', 'HKCC:');
 
+    const valueName = item.registryName || item.title;
     content += `# ${item.description || item.title}\n`;
     content += `if (!(Test-Path "${path}")) { New-Item -Path "${path}" -Force | Out-Null }\n`;
-    content += `Set-ItemProperty -Path "${path}" -Name "${item.title}" -Value "${item.content}" -Type ${type} -Force\n\n`;
+    content += `Set-ItemProperty -Path "${path}" -Name "${valueName}" -Value "${item.content}" -Type ${type} -Force\n\n`;
   });
 
   downloadFile(content, 'export_registry.ps1', 'text/plain');
@@ -170,7 +174,8 @@ export const generateBatFile = (items: Item[]) => {
 
   items.forEach(item => {
     if (item.category !== CategoryEnum.REGISTRY || !item.registryPath) return;
-    const nameSwitch = (item.title === '(Default)' || item.title === '@') ? '/ve' : `/v "${item.title}"`;
+    const valueName = item.registryName || item.title;
+    const nameSwitch = (valueName === '(Default)' || valueName === '@') ? '/ve' : `/v "${valueName}"`;
     content += `REM ${item.description || ''}\n`;
     content += `reg add "${item.registryPath}" ${nameSwitch} /t ${item.registryType} /d "${item.content}" /f\n`;
   });

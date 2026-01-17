@@ -19,6 +19,7 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
     description: '',
     language: 'typescript',
     registryPath: '',
+    registryName: '',
     registryType: 'REG_SZ'
   });
   
@@ -37,6 +38,7 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
         description: '',
         language: 'typescript',
         registryPath: '',
+        registryName: '',
         registryType: 'REG_SZ'
       });
     }
@@ -134,27 +136,50 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
 
                 {formData.category === CategoryEnum.REGISTRY && (
                     <div className="space-y-4 p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+                    <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <span className="text-blue-400">🔐</span> Configuration du registre Windows
+                    </h3>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Chemin du registre (Key Path)</label>
-                        <input 
-                        type="text" 
+                        <label className="block text-sm font-medium text-slate-400 mb-1">
+                            Chemin de la clé <span className="text-slate-500">(Key Path)</span>
+                        </label>
+                        <input
+                        type="text"
                         name="registryPath"
-                        value={formData.registryPath} 
+                        value={formData.registryPath}
                         onChange={handleChange}
-                        placeholder="HKEY_LOCAL_MACHINE\..."
+                        placeholder="HKEY_LOCAL_MACHINE\SOFTWARE\MyApp"
                         className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
                         />
+                        <p className="text-xs text-slate-500 mt-1">Ex: HKEY_CURRENT_USER\Software\MyApp</p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Type</label>
-                        <select 
-                        name="registryType" 
-                        value={formData.registryType} 
-                        onChange={handleChange}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
-                        >
-                        {REGISTRY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">
+                                Nom de la valeur <span className="text-slate-500">(Value Name)</span>
+                            </label>
+                            <input
+                            type="text"
+                            name="registryName"
+                            value={formData.registryName}
+                            onChange={handleChange}
+                            placeholder="Version"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">
+                                Type <span className="text-slate-500">(Value Type)</span>
+                            </label>
+                            <select
+                            name="registryType"
+                            value={formData.registryType}
+                            onChange={handleChange}
+                            className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
+                            >
+                            {REGISTRY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                        </div>
                     </div>
                     </div>
                 )}
