@@ -8,9 +8,10 @@ interface EditModalProps {
   onClose: () => void;
   onSave: (data: ItemFormData) => void;
   initialData?: Item | null;
+  existingTags: string[]; // All tags from all items
 }
 
-const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialData }) => {
+const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialData, existingTags }) => {
   const [formData, setFormData] = useState<ItemFormData>({
     title: '',
     content: '',
@@ -22,12 +23,25 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
     registryName: '',
     registryType: 'REG_SZ'
   });
-  
+
   const [tagInput, setTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+
+  // Filter existing tags based on input and exclude already selected tags
+  const suggestedTags = existingTags
+    .filter(tag => !formData.tags.includes(tag))
+    .filter(tag => tag.toLowerCase().includes(tagInput.toLowerCase()))
+    .slice(0, 10);
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData });
+      // Ensure registryName has a default value
+      setFormData({
+        ...initialData,
+        registryName: initialData.registryName || '',
+        registryPath: initialData.registryPath || '',
+        registryType: initialData.registryType || 'REG_SZ'
+      });
     } else {
       // Reset form for new item
       setFormData({
@@ -49,13 +63,21 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const addTag = (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, trimmedTag] }));
+    }
+    setTagInput('');
+    setShowTagSuggestions(false);
+  };
+
   const handleTagKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
-      if (!formData.tags.includes(tagInput.trim())) {
-        setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-      }
-      setTagInput('');
+      addTag(tagInput);
+    } else if (e.key === 'Escape') {
+      setShowTagSuggestions(false);
     }
   };
 
@@ -161,7 +183,7 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
                             <input
                             type="text"
                             name="registryName"
-                            value={formData.registryName}
+                            value={formData.registryName || ''}
                             onChange={handleChange}
                             placeholder="Version"
                             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white font-mono text-sm focus:ring-2 focus:ring-primary outline-none"
@@ -196,16 +218,51 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
                     />
                 </div>
 
-                <div>
+                <div className="relative">
                     <label className="block text-sm font-medium text-slate-400 mb-1">Tags</label>
-                    <input 
-                    type="text" 
+                    <input
+                    type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder="Appuyez sur Entrée pour ajouter"
+                    onFocus={() => setShowTagSuggestions(true)}
+                    placeholder="Taper pour chercher ou créer un tag..."
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     />
+
+                    {/* Tag Suggestions Dropdown */}
+                    {showTagSuggestions && (tagInput.length > 0 || existingTags.filter(t => !formData.tags.includes(t)).length > 0) && (
+                      <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        {tagInput.length > 0 && !existingTags.includes(tagInput.trim()) && tagInput.trim() !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => addTag(tagInput)}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-700 text-green-400 text-sm border-b border-slate-700"
+                          >
+                            + Créer "{tagInput.trim()}"
+                          </button>
+                        )}
+                        {suggestedTags.length > 0 ? (
+                          suggestedTags.map(tag => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => addTag(tag)}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-700 text-slate-300 text-sm flex items-center gap-2"
+                            >
+                              <span className="text-slate-500">#</span>
+                              {tag}
+                            </button>
+                          ))
+                        ) : tagInput.length === 0 ? (
+                          <div className="px-3 py-2 text-slate-500 text-sm">
+                            Commencer à taper pour voir les suggestions...
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Selected Tags */}
                     <div className="flex flex-wrap gap-2 mt-2 min-h-[30px]">
                     {formData.tags.map(tag => (
                         <span key={tag} className="bg-slate-700 text-slate-200 text-xs px-2 py-1 rounded-full flex items-center gap-1 animate-fade-in">
@@ -214,6 +271,25 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
                         </span>
                     ))}
                     </div>
+
+                    {/* Popular Tags (if no tags selected yet) */}
+                    {formData.tags.length === 0 && existingTags.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-500 mb-1">Tags populaires:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {existingTags.slice(0, 8).map(tag => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => addTag(tag)}
+                              className="text-xs px-2 py-1 rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700"
+                            >
+                              #{tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
             </div>
 
