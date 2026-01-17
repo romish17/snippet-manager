@@ -1,0 +1,5 @@
+{
+  "name": "DevSnippet Manager",
+  "description": "Une application élégante pour gérer vos prompts IA, bouts de code et clés de registre Windows, avec assistance Gemini intégrée.",
+  "requestFramePermissions": []
+}

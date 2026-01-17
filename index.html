@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevSnippet Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Rajdhani for Cyberpunk look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: 'rgb(var(--c-background) / <alpha-value>)',
+              surface: 'rgb(var(--c-surface) / <alpha-value>)',
+              primary: 'rgb(var(--c-primary) / <alpha-value>)',
+              secondary: 'rgb(var(--c-secondary) / <alpha-value>)',
+              accent: 'rgb(var(--c-accent) / <alpha-value>)',
+            },
+            fontFamily: {
+              sans: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+              cyber: ['Rajdhani', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out',
+              'fade-in-up': 'fadeInUp 0.3s ease-out',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translate(-50%, 20px)' },
+                '100%': { opacity: '1', transform: 'translate(-50%, 0)' },
+              },
+            }
+          }
+        }
+      }
+    </script>
+    
+    <!-- CSS Variables for Theming -->
+    <style>
+      :root {
+        /* Default Theme (Slate/Blue) */
+        --c-background: 15 23 42;  /* slate-900 #0f172a */
+        --c-surface: 30 41 59;     /* slate-800 #1e293b */
+        --c-primary: 59 130 246;   /* blue-500 #3b82f6 */
+        --c-secondary: 100 116 139;/* slate-500 #64748b */
+        --c-accent: 139 92 246;    /* violet-500 #8b5cf6 */
+      }
+
+      [data-theme="syntax"] {
+        /* Syntax Theme (Deep Dark Blue & Electric Sky) */
+        --c-background: 11 17 33;  /* #0B1121 Very Deep Blue */
+        --c-surface: 30 41 59;     /* #1e293b Slate 800 (Kept for card contrast) */
+        --c-primary: 56 189 248;   /* #38bdf8 Sky 400 (Electric Blue) */
+        --c-secondary: 148 163 184;/* #94a3b8 Slate 400 */
+        --c-accent: 167 139 250;   /* #a78bfa Violet 400 */
+      }
+      
+      /* Background Glow Effect for Syntax Theme */
+      [data-theme="syntax"] body {
+        background-image: 
+          radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 40%),
+          radial-gradient(circle at 85% 0%, rgba(167, 139, 250, 0.1) 0%, transparent 40%);
+        background-attachment: fixed;
+      }
+      
+      [data-theme="syntax"] .bg-surface {
+        border-color: rgba(56, 189, 248, 0.1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.15);
+      }
+      
+      [data-theme="syntax"] input:focus, 
+      [data-theme="syntax"] textarea:focus, 
+      [data-theme="syntax"] select:focus {
+        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+      }
+
+      /* CYBERPUNK 2077 THEME */
+      [data-theme="cyberpunk-2077"] {
+        --c-background: 0 0 0;       /* Black */
+        --c-surface: 26 26 26;       /* Dark Grey */
+        --c-primary: 252 238 10;     /* #FCEE0A Cyber Yellow */
+        --c-secondary: 0 240 255;    /* #00F0FF Cyan */
+        --c-accent: 255 0 60;        /* #FF003C Red */
+      }
+
+      [data-theme="cyberpunk-2077"] body {
+        font-family: 'Rajdhani', sans-serif;
+        letter-spacing: 0.5px;
+        background-image: 
+          linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+          linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        background-size: 100% 2px, 3px 100%;
+      }
+
+      /* Cyberpunk Hard Edges & Overrides */
+      [data-theme="cyberpunk-2077"] .rounded-xl,
+      [data-theme="cyberpunk-2077"] .rounded-lg,
+      [data-theme="cyberpunk-2077"] .rounded-md,
+      [data-theme="cyberpunk-2077"] .rounded-full,
+      [data-theme="cyberpunk-2077"] .rounded {
+        border-radius: 0 !important;
+      }
+      
+      /* Card Cut Corner Effect */
+      [data-theme="cyberpunk-2077"] .bg-surface {
+        clip-path: polygon(
+          0 0, 
+          100% 0, 
+          100% calc(100% - 20px), 
+          calc(100% - 20px) 100%, 
+          0 100%
+        );
+        border: none;
+        position: relative;
+        background: #1a1a1a;
+      }
+      
+      /* Yellow decorative border on left */
+      [data-theme="cyberpunk-2077"] .bg-surface::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background-color: rgb(var(--c-primary));
+        opacity: 0.7;
+      }
+
+      [data-theme="cyberpunk-2077"] button,
+      [data-theme="cyberpunk-2077"] select,
+      [data-theme="cyberpunk-2077"] input {
+        text-transform: uppercase;
+        font-weight: 700;
+        border: 1px solid rgb(var(--c-surface));
+      }
+
+      [data-theme="cyberpunk-2077"] .text-slate-200 { color: #e5e5e5; }
+      [data-theme="cyberpunk-2077"] .text-slate-400 { color: #9a9a9a; }
+      
+      /* Yellow Primary Highlights */
+      [data-theme="cyberpunk-2077"] .bg-primary {
+        background-color: rgb(var(--c-primary));
+        color: black !important;
+      }
+      [data-theme="cyberpunk-2077"] .text-primary {
+        color: rgb(var(--c-primary));
+      }
+      [data-theme="cyberpunk-2077"] .focus\:ring-primary:focus {
+        --tw-ring-color: rgb(var(--c-primary));
+      }
+    </style>
+
+    <!-- JSZip for creating Zip archives -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- PrismJS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-powershell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"></script>
+
+    <style>
+      body {
+        background-color: rgb(var(--c-background));
+        color: #f8fafc;
+        transition: background-color 0.5s ease, color 0.3s ease;
+      }
+      /* Custom scrollbar for better aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgb(var(--c-surface)); 
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgb(var(--c-secondary)); 
+      }
+      /* Prism overrides */
+      code[class*="language-"], pre[class*="language-"] {
+        font-size: 13px;
+        background: transparent !important;
+        text-shadow: none !important;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "uuid": "https://esm.sh/uuid@^13.0.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
