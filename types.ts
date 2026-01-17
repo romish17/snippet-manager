@@ -16,11 +16,12 @@ export interface Item {
   tags: string[];
   createdAt: number;
   updatedAt: number;
-  
+
   // Specific fields
   language?: string; // For code
-  registryPath?: string; // For registry keys
-  registryType?: string; // For registry keys (DWORD, SZ, etc.)
+  registryPath?: string; // For registry: key path (ex: HKEY_LOCAL_MACHINE\SOFTWARE\MyApp)
+  registryName?: string; // For registry: value name (ex: "Version")
+  registryType?: string; // For registry: value type (REG_SZ, REG_DWORD, etc.)
 }
 
 export interface ItemFormData extends Omit<Item, 'id' | 'createdAt' | 'updatedAt'> {

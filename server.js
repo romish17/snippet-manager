@@ -30,7 +30,7 @@ let pool;
 async function initDb() {
   try {
     pool = mysql.createPool(dbConfig);
-    
+
     // Create Table if not exists
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS items (
@@ -42,12 +42,25 @@ async function initDb() {
         tags JSON,
         language VARCHAR(50),
         registryPath VARCHAR(512),
+        registryName VARCHAR(255),
         registryType VARCHAR(50),
         createdAt BIGINT,
         updatedAt BIGINT
       )
     `;
     await pool.query(createTableQuery);
+
+    // Migration: Add registryName column if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE items
+        ADD COLUMN IF NOT EXISTS registryName VARCHAR(255) AFTER registryPath
+      `);
+    } catch (migrationError) {
+      // Column might already exist, ignore error
+      console.log('Migration note:', migrationError.message);
+    }
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
@@ -106,12 +119,13 @@ app.post('/api/sync', async (req, res) => {
         JSON.stringify(item.tags),
         item.language || null,
         item.registryPath || null,
+        item.registryName || null,
         item.registryType || null,
         item.createdAt,
         item.updatedAt
       ]);
 
-      const sql = `INSERT INTO items (id, title, content, category, description, tags, language, registryPath, registryType, createdAt, updatedAt) VALUES ?`;
+      const sql = `INSERT INTO items (id, title, content, category, description, tags, language, registryPath, registryName, registryType, createdAt, updatedAt) VALUES ?`;
       await connection.query(sql, [values]);
     }
 
