@@ -10,7 +10,6 @@ services:
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_NAME=devsnippets
-      - API_KEY=${API_KEY}
     depends_on:
       - db
     restart: always

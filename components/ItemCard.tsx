@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Trash2, Edit, Code, Terminal, FileCode, Check, HelpCircle, Loader2, StickyNote } from 'lucide-react';
+import { Copy, Trash2, Edit, Code, Terminal, FileCode, Check, StickyNote } from 'lucide-react';
 import { CategoryEnum, Item } from '../types';
-import { explainItem } from '../services/geminiService';
 
 interface ItemCardProps {
   item: Item;
@@ -13,15 +12,13 @@ interface ItemCardProps {
 
 const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isAdmin }) => {
   const [copied, setCopied] = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   // Trigger Prism highlight on mount/update
   useEffect(() => {
     if ((window as any).Prism) {
       (window as any).Prism.highlightAll();
     }
-  }, [item.content, explanation]);
+  }, [item.content]);
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -35,23 +32,6 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isA
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleExplain = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (explanation) {
-      setExplanation(null); // Toggle off
-      return;
-    }
-    setLoadingExplanation(true);
-    try {
-      const result = await explainItem(item);
-      setExplanation(result);
-    } catch (error) {
-      setExplanation("Erreur lors de la génération de l'explication.");
-    } finally {
-      setLoadingExplanation(false);
-    }
   };
 
   const getIcon = () => {
@@ -149,20 +129,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isA
         {item.tags.length > 3 && <span className="text-xs text-slate-500">+{item.tags.length - 3}</span>}
       </div>
 
-      {/* Explanation Area */}
-      {explanation && (
-        <div className="mb-4 p-3 bg-indigo-900/20 border border-indigo-500/30 rounded-lg text-sm text-indigo-200 animate-fade-in" onClick={(e) => e.stopPropagation()}>
-           <div className="flex justify-between items-center mb-1">
-             <span className="font-bold text-indigo-400 text-xs uppercase">Analyse Gemini</span>
-             <button onClick={(e) => {e.stopPropagation(); setExplanation(null);}} className="text-indigo-400 hover:text-white"><X size={12}/></button>
-           </div>
-           {explanation}
-        </div>
-      )}
-
       {/* Footer Actions */}
       <div className="mt-auto flex gap-2 border-t border-slate-700 pt-3">
-        <button 
+        <button
           onClick={handleCopy}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all ${
             copied ? 'bg-green-500/20 text-green-400' : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
@@ -171,24 +140,10 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isA
           {copied ? <Check size={16} /> : <Copy size={16} />}
           {copied ? 'Copié !' : 'Copier'}
         </button>
-        
-        <button 
-          onClick={handleExplain}
-          disabled={loadingExplanation}
-          className="flex items-center justify-center p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-accent transition-colors disabled:opacity-50"
-          title="Expliquer avec Gemini"
-        >
-          {loadingExplanation ? <Loader2 size={16} className="animate-spin" /> : <HelpCircle size={16} />}
-        </button>
       </div>
 
     </div>
   );
 };
-
-// Simple Icon component helper for the card
-const X = ({size}: {size: number}) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-);
 
 export default ItemCard;
