@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, AlertTriangle, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote } from 'lucide-react';
+import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, AlertTriangle, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw } from 'lucide-react';
 import { CategoryType, CategoryEnum, Item, ItemFormData } from './types';
 import { loadItems, saveItems } from './services/storageService';
 import { generateBatFile, generatePs1File, generateRegFile, generateZipArchive, downloadSingleItem } from './services/exportService';
 import ItemCard from './components/ItemCard';
 import ItemListView from './components/ItemListView';
 import EditModal from './components/EditModal';
-import ViewModal from './components/ViewModal'; // New Import
+import ViewModal from './components/ViewModal';
 import { v4 as uuidv4 } from 'uuid';
 
 type Theme = 'default' | 'syntax' | 'cyberpunk-2077';
@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<CategoryType>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [viewingItem, setViewingItem] = useState<Item | null>(null); // State for viewing
+  const [viewingItem, setViewingItem] = useState<Item | null>(null);
   
   // View State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -27,10 +27,19 @@ const App: React.FC = () => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Load items
+  // Loading State
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load items (Async)
   useEffect(() => {
-    const loaded = loadItems();
-    setItems(loaded);
+    const fetchData = async () => {
+      setIsLoading(true);
+      const loaded = await loadItems();
+      setItems(loaded);
+      setIsLoading(false);
+    };
+    
+    fetchData();
     
     // Load theme
     const savedTheme = localStorage.getItem('app_theme') as Theme;
@@ -42,11 +51,13 @@ const App: React.FC = () => {
   }, []);
 
   // Save items
+  // Note: In a real prod app, we would debounce this or save on specific actions
+  // rather than every state change to avoid spamming the SQL DB.
   useEffect(() => {
-    if (items.length > 0) {
+    if (!isLoading) {
         saveItems(items);
     }
-  }, [items]);
+  }, [items, isLoading]);
 
   // Apply Theme
   useEffect(() => {
@@ -111,7 +122,6 @@ const App: React.FC = () => {
   const handleDeleteItem = (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) {
       setItems(prev => prev.filter(item => item.id !== id));
-      // Remove from selection if deleted
       if (selectedIds.has(id)) {
         const newSet = new Set(selectedIds);
         newSet.delete(id);
@@ -134,7 +144,6 @@ const App: React.FC = () => {
   // Export handlers
   const getSelectedItems = () => items.filter(i => selectedIds.has(i.id));
 
-  // Determine export capabilities based on selection
   const selectionAnalysis = useMemo(() => {
     const selected = getSelectedItems();
     const hasRegistry = selected.some(i => i.category === CategoryEnum.REGISTRY);
@@ -164,7 +173,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Ensure selection is cleared when category changes filters drastically
+  // Ensure selection is cleared when category changes
   useEffect(() => {
     setSelectedIds(new Set());
   }, [activeCategory]);
@@ -300,53 +309,65 @@ const App: React.FC = () => {
             </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+            <div className="flex justify-center items-center py-20">
+                <div className="flex flex-col items-center gap-3 text-primary animate-pulse">
+                    <RefreshCw size={32} className="animate-spin" />
+                    <span className="text-sm font-medium">Connexion à la base de données...</span>
+                </div>
+            </div>
+        )}
+
         {/* Content Area */}
-        {filteredItems.length > 0 ? (
-          <>
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredItems.map(item => (
-                  <ItemCard 
-                    key={item.id} 
-                    item={item} 
-                    onView={() => setViewingItem(item)} // Handle View
-                    onEdit={openEditModal} 
+        {!isLoading && (
+            filteredItems.length > 0 ? (
+            <>
+                {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredItems.map(item => (
+                    <ItemCard 
+                        key={item.id} 
+                        item={item} 
+                        onView={() => setViewingItem(item)}
+                        onEdit={openEditModal} 
+                        onDelete={handleDeleteItem}
+                        isAdmin={isAdmin}
+                    />
+                    ))}
+                </div>
+                ) : (
+                <ItemListView 
+                    items={filteredItems}
+                    selectedIds={selectedIds}
+                    onToggleSelect={toggleSelect}
+                    onToggleSelectAll={toggleSelectAll}
+                    onView={(item) => setViewingItem(item)}
+                    onEdit={openEditModal}
                     onDelete={handleDeleteItem}
                     isAdmin={isAdmin}
-                  />
-                ))}
-              </div>
+                />
+                )}
+            </>
             ) : (
-              <ItemListView 
-                items={filteredItems}
-                selectedIds={selectedIds}
-                onToggleSelect={toggleSelect}
-                onToggleSelectAll={toggleSelectAll}
-                onView={(item) => setViewingItem(item)} // Handle View
-                onEdit={openEditModal}
-                onDelete={handleDeleteItem}
-                isAdmin={isAdmin}
-              />
-            )}
-          </>
-        ) : (
-          <div className="text-center py-20 border-2 border-dashed border-surface rounded-xl bg-surface/50">
-            <div className="inline-flex items-center justify-center p-4 bg-surface rounded-full mb-4">
-              <Search className="h-8 w-8 text-secondary" />
+            <div className="text-center py-20 border-2 border-dashed border-surface rounded-xl bg-surface/50">
+                <div className="inline-flex items-center justify-center p-4 bg-surface rounded-full mb-4">
+                <Search className="h-8 w-8 text-secondary" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-300">Aucun élément trouvé</h3>
+                <p className="text-secondary mt-1 max-w-sm mx-auto">
+                Essayez de modifier votre recherche.
+                </p>
+                {isAdmin && (
+                    <button 
+                    onClick={openNewModal}
+                    className="mt-6 text-primary hover:opacity-80 font-medium hover:underline"
+                    >
+                    Créer un nouvel élément
+                    </button>
+                )}
             </div>
-            <h3 className="text-lg font-medium text-slate-300">Aucun élément trouvé</h3>
-            <p className="text-secondary mt-1 max-w-sm mx-auto">
-              Essayez de modifier votre recherche.
-            </p>
-            {isAdmin && (
-                <button 
-                onClick={openNewModal}
-                className="mt-6 text-primary hover:opacity-80 font-medium hover:underline"
-                >
-                Créer un nouvel élément
-                </button>
-            )}
-          </div>
+            )
         )}
       </main>
 
