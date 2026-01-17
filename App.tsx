@@ -69,15 +69,24 @@ const App: React.FC = () => {
     setTheme(e.target.value as Theme);
   };
 
+  // Extract all unique tags from all items
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    items.forEach(item => {
+      item.tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [items]);
+
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         item.title.toLowerCase().includes(searchLower) ||
         item.content.toLowerCase().includes(searchLower) ||
         item.tags.some(tag => tag.toLowerCase().includes(searchLower));
-      
+
       return matchesCategory && matchesSearch;
     });
   }, [items, activeCategory, searchTerm]);
@@ -417,11 +426,12 @@ const App: React.FC = () => {
       )}
 
       {/* Modals */}
-      <EditModal 
+      <EditModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveItem}
         initialData={editingItem}
+        existingTags={allTags}
       />
       
       <ViewModal 
