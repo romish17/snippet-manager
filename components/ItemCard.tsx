@@ -26,7 +26,12 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isA
     let textToCopy = item.content;
     if (item.category === CategoryEnum.REGISTRY) {
        // Format a .reg file content style for registry items
-       textToCopy = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n"${item.title === '@' || item.title === '(Default)' ? '@' : item.title}"=${item.registryType === 'REG_DWORD' ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}` : `"${item.content}"`}`;
+       const valueName = item.registryName || item.title;
+       const name = valueName === '@' || valueName === '(Default)' ? '@' : `"${valueName}"`;
+       const value = item.registryType === 'REG_DWORD'
+         ? `dword:${parseInt(item.content).toString(16).padStart(8, '0')}`
+         : `"${item.content}"`;
+       textToCopy = `Windows Registry Editor Version 5.00\n\n[${item.registryPath}]\n${name}=${value}`;
     }
 
     navigator.clipboard.writeText(textToCopy);
@@ -95,21 +100,36 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onView, onEdit, onDelete, isA
 
       {/* Content Preview with Syntax Highlighting */}
       <div className="flex-1 mb-4 relative group/code">
-        <div className="bg-slate-950 rounded-lg p-3 text-xs font-mono text-slate-300 h-40 overflow-hidden relative border border-slate-800">
-          <div className="absolute inset-0 p-3 overflow-hidden text-ellipsis">
-            {item.category === CategoryEnum.REGISTRY && (
-                <div className="mb-2 text-slate-500 border-b border-slate-800 pb-1 italic">
-                    {item.registryPath}
-                </div>
-            )}
-            <pre className={getLanguageClass()} style={{ margin: 0, padding: 0, background: 'transparent' }}>
-              <code className={getLanguageClass()}>
-                {item.content}
-              </code>
-            </pre>
+        {item.category === CategoryEnum.REGISTRY ? (
+          // Compact Registry Display
+          <div className="bg-slate-950 rounded-lg p-3 text-xs font-mono border border-slate-800 space-y-2">
+            <div className="grid grid-cols-[80px_1fr] gap-2 text-slate-400">
+              <span className="font-semibold text-slate-500">Path:</span>
+              <span className="text-slate-300 break-all">{item.registryPath || '-'}</span>
+
+              <span className="font-semibold text-slate-500">Name:</span>
+              <span className="text-slate-300">{item.registryName || item.title || '-'}</span>
+
+              <span className="font-semibold text-slate-500">Type:</span>
+              <span className="text-pink-400">{item.registryType || 'REG_SZ'}</span>
+
+              <span className="font-semibold text-slate-500">Value:</span>
+              <span className="text-green-400 break-all">{item.content || '-'}</span>
+            </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
-        </div>
+        ) : (
+          // Standard Code/Prompt Display
+          <div className="bg-slate-950 rounded-lg p-3 text-xs font-mono text-slate-300 h-40 overflow-hidden relative border border-slate-800">
+            <div className="absolute inset-0 p-3 overflow-hidden text-ellipsis">
+              <pre className={getLanguageClass()} style={{ margin: 0, padding: 0, background: 'transparent' }}>
+                <code className={getLanguageClass()}>
+                  {item.content}
+                </code>
+              </pre>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
+          </div>
+        )}
       </div>
       
       {/* Description if available */}
