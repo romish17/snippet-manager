@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, AlertTriangle, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw } from 'lucide-react';
+import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw } from 'lucide-react';
 import { CategoryType, CategoryEnum, Item, ItemFormData } from './types';
 import { loadItems, saveItems } from './services/storageService';
 import { generateBatFile, generatePs1File, generateRegFile, generateZipArchive, downloadSingleItem } from './services/exportService';
@@ -300,12 +300,6 @@ const App: React.FC = () => {
                         <List size={18} />
                     </button>
                 </div>
-
-                {!process.env.API_KEY && (
-                    <span className="flex items-center gap-1 text-amber-500 bg-amber-500/10 px-2 py-1 rounded text-xs hidden sm:flex">
-                    <AlertTriangle size={12} /> Clé API manquante
-                    </span>
-                )}
             </div>
         </div>
 

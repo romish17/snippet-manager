@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { X, Copy, Check, Terminal, Code, FileCode, StickyNote, Calendar, Tag, HelpCircle, Loader2 } from 'lucide-react';
+import { X, Copy, Check, Terminal, Code, FileCode, StickyNote, Calendar, Tag } from 'lucide-react';
 import { CategoryEnum, Item } from '../types';
-import { explainItem } from '../services/geminiService';
 
 interface ViewModalProps {
   item: Item | null;
@@ -12,15 +11,12 @@ interface ViewModalProps {
 
 const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin }) => {
   const [copied, setCopied] = useState(false);
-  const [explanation, setExplanation] = useState<string | null>(null);
-  const [loadingExplanation, setLoadingExplanation] = useState(false);
 
   useEffect(() => {
     if (item && (window as any).Prism) {
       // Small timeout to ensure DOM is ready
       setTimeout(() => (window as any).Prism.highlightAll(), 50);
     }
-    setExplanation(null); // Reset explanation when item changes
   }, [item]);
 
   if (!item) return null;
@@ -33,22 +29,6 @@ const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin })
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleExplain = async () => {
-    if (explanation) {
-      setExplanation(null);
-      return;
-    }
-    setLoadingExplanation(true);
-    try {
-      const result = await explainItem(item);
-      setExplanation(result);
-    } catch (error) {
-      setExplanation("Erreur lors de la génération de l'explication.");
-    } finally {
-      setLoadingExplanation(false);
-    }
   };
 
   const getIcon = () => {
@@ -133,19 +113,12 @@ const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin })
           {/* Main Content Area */}
           <div className="relative group">
              <div className="absolute right-4 top-4 z-10 flex gap-2">
-                <button 
+                <button
                   onClick={handleCopy}
                   className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg backdrop-blur-sm border border-slate-600 transition-all shadow-lg"
                   title="Copier"
                 >
                   {copied ? <Check size={18} className="text-green-400"/> : <Copy size={18} />}
-                </button>
-                <button 
-                  onClick={handleExplain}
-                  className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 p-2 rounded-lg backdrop-blur-sm border border-slate-600 transition-all shadow-lg"
-                  title="Expliquer avec IA"
-                >
-                  {loadingExplanation ? <Loader2 size={18} className="animate-spin"/> : <HelpCircle size={18} />}
                 </button>
              </div>
 
@@ -157,16 +130,6 @@ const ViewModal: React.FC<ViewModalProps> = ({ item, onClose, onEdit, isAdmin })
                </pre>
              </div>
           </div>
-
-          {/* AI Explanation Result */}
-          {explanation && (
-            <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-xl p-5 animate-fade-in">
-               <h3 className="text-indigo-400 font-bold mb-2 flex items-center gap-2">
-                 <HelpCircle size={18} /> Analyse Gemini
-               </h3>
-               <p className="text-indigo-100 leading-relaxed whitespace-pre-wrap">{explanation}</p>
-            </div>
-          )}
 
         </div>
       </div>

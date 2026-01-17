@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Wand2 } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { CategoryEnum, Item, ItemFormData } from '../types';
 import { REGISTRY_TYPES, LANGUAGES } from '../constants';
-import { enhancePrompt } from '../services/geminiService';
 
 interface EditModalProps {
   isOpen: boolean;
@@ -24,7 +23,6 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
   });
   
   const [tagInput, setTagInput] = useState('');
-  const [isEnhancing, setIsEnhancing] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -61,19 +59,6 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
 
   const removeTag = (tagToRemove: string) => {
     setFormData(prev => ({ ...prev, tags: prev.tags.filter(tag => tag !== tagToRemove) }));
-  };
-
-  const handleEnhancePrompt = async () => {
-    if (!formData.content) return;
-    setIsEnhancing(true);
-    try {
-      const improved = await enhancePrompt(formData.content);
-      setFormData(prev => ({ ...prev, content: improved }));
-    } catch (e) {
-      alert("Erreur lors de l'amélioration du prompt (vérifiez votre clé API)");
-    } finally {
-      setIsEnhancing(false);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -212,16 +197,6 @@ const EditModal: React.FC<EditModalProps> = ({ isOpen, onClose, onSave, initialD
                     <label className="block text-sm font-medium text-slate-400">
                     {formData.category === CategoryEnum.REGISTRY ? 'Valeur (Value)' : (formData.category === CategoryEnum.NOTE ? 'Contenu Markdown' : 'Contenu')}
                     </label>
-                    {formData.category === CategoryEnum.PROMPT && (
-                    <button 
-                        type="button" 
-                        onClick={handleEnhancePrompt}
-                        disabled={isEnhancing}
-                        className="text-xs flex items-center gap-1 text-accent hover:text-white transition-colors disabled:opacity-50"
-                    >
-                        <Wand2 size={12} /> {isEnhancing ? 'Amélioration...' : 'Améliorer avec Gemini'}
-                    </button>
-                    )}
                 </div>
                 {/* Increased rows significantly */}
                 <textarea 
