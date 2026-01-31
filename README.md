@@ -4,6 +4,8 @@ Une application moderne de gestion de snippets de code, prompts IA, clés de reg
 
 ## ✨ Fonctionnalités
 
+- **🔐 Authentification**: Système JWT avec inscription/connexion sécurisée
+- **👥 Multi-utilisateurs**: Chaque utilisateur a ses propres snippets
 - **📋 Gestion de Snippets**: Stockez et organisez vos snippets de code avec coloration syntaxique
 - **🤖 Prompts IA**: Gérez vos prompts pour les LLMs
 - **🔧 Registre Windows**: Stockez et exportez des clés de registre (.reg, .ps1, .bat)
@@ -12,7 +14,7 @@ Une application moderne de gestion de snippets de code, prompts IA, clés de reg
 - **🔍 Recherche**: Recherche instantanée dans tous vos snippets
 - **📦 Export**: Exportation individuelle ou par lot
 - **🔒 Mode Admin**: Protection des modifications avec mode visualisation seule
-- **🎯 Tags**: Organisation par tags personnalisés
+- **🎯 Tags**: Organisation par tags personnalisés avec autocomplete
 - **💾 Base de données**: Persistence avec MySQL
 
 ## 🚀 Démarrage rapide avec Docker
@@ -43,6 +45,14 @@ http://localhost:3000
 L'application démarre avec:
 - **Frontend + Backend**: Port 3000
 - **MySQL**: Port 3306 (accessible localement si besoin)
+
+### 🔑 Première connexion
+
+Un compte administrateur par défaut est créé automatiquement:
+- **Nom d'utilisateur**: `admin`
+- **Mot de passe**: `admin`
+
+⚠️ **Important**: Changez le mot de passe après la première connexion ou créez un nouveau compte utilisateur.
 
 ### Arrêter l'application
 
@@ -127,6 +137,37 @@ snippet-manager/
 └── docker-compose.yml  # Orchestration Docker
 ```
 
+## 🔐 Authentification et Sécurité
+
+### Système d'authentification
+
+L'application utilise JWT (JSON Web Tokens) pour sécuriser l'accès:
+
+- **Inscription**: Créez un nouveau compte avec username, email et mot de passe
+- **Connexion**: Authentifiez-vous avec votre nom d'utilisateur et mot de passe
+- **Token**: JWT valide pendant 7 jours
+- **Mot de passe**: Hashé avec bcrypt (10 rounds)
+- **Isolation**: Chaque utilisateur ne voit que ses propres snippets
+
+### Compte par défaut
+
+- Username: `admin`
+- Password: `admin`
+- Role: `admin` (accès complet en mode admin)
+
+### Rôles utilisateurs
+
+- **admin**: Peut créer, modifier et supprimer des snippets
+- **user**: Peut créer, modifier et supprimer ses propres snippets
+
+### Sécurité
+
+- Mots de passe hashés et jamais stockés en clair
+- Tokens JWT signés avec secret (configurable via `JWT_SECRET`)
+- Auto-déconnexion en cas de token expiré ou invalide
+- Protection CORS pour les requêtes API
+- Isolation des données par utilisateur
+
 ## 🎨 Thèmes disponibles
 
 - **Standard**: Thème sombre classique
@@ -153,10 +194,20 @@ Cliquez sur l'icône 👁️/🛡️ dans la navbar pour basculer entre les mode
 
 ## 🗄️ API Endpoints
 
+### Authentification
+
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| GET | `/api/items` | Récupère tous les snippets |
-| POST | `/api/sync` | Synchronise tous les snippets |
+| POST | `/api/auth/register` | Créer un nouveau compte |
+| POST | `/api/auth/login` | Se connecter |
+| GET | `/api/auth/me` | Obtenir l'utilisateur actuel (nécessite token) |
+
+### Snippets (nécessite authentification)
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/api/items` | Récupère tous les snippets de l'utilisateur |
+| POST | `/api/sync` | Synchronise tous les snippets de l'utilisateur |
 
 ## 🔧 Variables d'environnement
 
@@ -166,6 +217,7 @@ Cliquez sur l'icône 👁️/🛡️ dans la navbar pour basculer entre les mode
 | `DB_USER` | `root` | Utilisateur MySQL |
 | `DB_PASSWORD` | `` | Mot de passe MySQL |
 | `DB_NAME` | `devsnippets` | Nom de la base |
+| `JWT_SECRET` | `your-secret-key-change-in-production` | Clé secrète pour signer les JWT (⚠️ **à changer en production!**) |
 
 ## 🐳 Configuration Docker
 
