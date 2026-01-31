@@ -29,7 +29,7 @@ const App: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Loading State
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -37,16 +37,18 @@ const App: React.FC = () => {
 
   // Check authentication on mount only
   useEffect(() => {
+    console.log('[App] Checking authentication on mount...');
     const token = localStorage.getItem('auth_token');
     const user = localStorage.getItem('user');
 
     if (token && user) {
+      console.log('[App] Found token and user in localStorage');
       const userData = JSON.parse(user);
       setIsAuthenticated(true);
       setCurrentUser(userData);
       setIsAdmin(userData.role === 'admin');
     } else {
-      setIsLoading(false);
+      console.log('[App] No token found, user not authenticated');
     }
 
     // Load theme
@@ -58,7 +60,10 @@ const App: React.FC = () => {
 
   // Load items when authenticated
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      console.log('[App] Not authenticated, skipping item load');
+      return;
+    }
 
     const fetchData = async () => {
       console.log('[App] Starting to load items...');
