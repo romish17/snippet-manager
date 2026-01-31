@@ -45,6 +45,8 @@ const App: React.FC = () => {
       setCurrentUser(JSON.parse(user));
       // Set admin mode based on user role
       setIsAdmin(JSON.parse(user).role === 'admin');
+    } else {
+      setIsLoading(false);
     }
   }, []);
 
@@ -70,17 +72,19 @@ const App: React.FC = () => {
     return <AuthPage onAuth={handleAuth} />;
   }
 
-  // Load items (Async)
+  // Load items (Async) - Only when authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchData = async () => {
       setIsLoading(true);
       const loaded = await loadItems();
       setItems(loaded);
       setIsLoading(false);
     };
-    
+
     fetchData();
-    
+
     // Load theme
     const savedTheme = localStorage.getItem('app_theme') as Theme;
     if (savedTheme) {
@@ -88,7 +92,7 @@ const App: React.FC = () => {
     } else {
         setTheme('default');
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Save items
   // Note: In a real prod app, we would debounce this or save on specific actions
