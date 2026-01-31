@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw } from 'lucide-react';
+import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw, LogOut, User } from 'lucide-react';
 import { CategoryType, CategoryEnum, Item, ItemFormData } from './types';
 import { loadItems, saveItems } from './services/storageService';
 import { generateBatFile, generatePs1File, generateRegFile, generateZipArchive, downloadSingleItem } from './services/exportService';
@@ -7,6 +7,7 @@ import ItemCard from './components/ItemCard';
 import ItemListView from './components/ItemListView';
 import EditModal from './components/EditModal';
 import ViewModal from './components/ViewModal';
+import AuthPage from './components/AuthPage';
 import { v4 as uuidv4 } from 'uuid';
 
 type Theme = 'default' | 'syntax' | 'cyberpunk-2077';
@@ -29,6 +30,45 @@ const App: React.FC = () => {
 
   // Loading State
   const [isLoading, setIsLoading] = useState(true);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+
+    if (token && user) {
+      setIsAuthenticated(true);
+      setCurrentUser(JSON.parse(user));
+      // Set admin mode based on user role
+      setIsAdmin(JSON.parse(user).role === 'admin');
+    }
+  }, []);
+
+  // Handle authentication
+  const handleAuth = (token: string, user: any) => {
+    setIsAuthenticated(true);
+    setCurrentUser(user);
+    setIsAdmin(user.role === 'admin');
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setIsAdmin(false);
+    setItems([]);
+  };
+
+  // If not authenticated, show auth page
+  if (!isAuthenticated) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
 
   // Load items (Async)
   useEffect(() => {
@@ -235,6 +275,19 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
+              {/* User Info & Logout */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-surface border border-surface rounded-lg text-sm">
+                <User size={16} className="text-slate-400" />
+                <span className="text-slate-300 font-medium hidden md:inline">{currentUser?.username}</span>
+                <button
+                  onClick={handleLogout}
+                  className="ml-1 p-1 hover:bg-slate-700 rounded transition-colors text-slate-400 hover:text-red-400"
+                  title="Déconnexion"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+
               {/* Theme Dropdown */}
               <div className="relative flex items-center">
                  <div className="absolute left-2 text-slate-400 pointer-events-none">
@@ -254,8 +307,8 @@ const App: React.FC = () => {
               <button
                 onClick={() => setIsAdmin(!isAdmin)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
-                  isAdmin 
-                  ? 'bg-surface text-accent border-accent/50 hover:border-accent' 
+                  isAdmin
+                  ? 'bg-surface text-accent border-accent/50 hover:border-accent'
                   : 'bg-surface text-slate-400 border-surface hover:text-white hover:border-slate-600'
                 }`}
                 title={isAdmin ? "Désactiver le mode Admin" : "Activer le mode Admin"}
