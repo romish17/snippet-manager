@@ -119,6 +119,23 @@ const App: React.FC = () => {
     });
   }, [items, activeCategory, searchTerm]);
 
+  // Selection analysis for export functionality
+  const getSelectedItems = () => items.filter(i => selectedIds.has(i.id));
+
+  const selectionAnalysis = useMemo(() => {
+    const selected = getSelectedItems();
+    const hasRegistry = selected.some(i => i.category === CategoryEnum.REGISTRY);
+    const hasNonRegistry = selected.some(i => i.category !== CategoryEnum.REGISTRY);
+    const count = selected.length;
+
+    return { selected, hasRegistry, hasNonRegistry, count };
+  }, [selectedIds, items]);
+
+  // Ensure selection is cleared when category changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeCategory]);
+
   // Handle authentication
   const handleAuth = (token: string, user: any) => {
     console.log('[App] handleAuth called with user:', user);
@@ -206,17 +223,6 @@ const App: React.FC = () => {
   };
 
   // Export handlers
-  const getSelectedItems = () => items.filter(i => selectedIds.has(i.id));
-
-  const selectionAnalysis = useMemo(() => {
-    const selected = getSelectedItems();
-    const hasRegistry = selected.some(i => i.category === CategoryEnum.REGISTRY);
-    const hasNonRegistry = selected.some(i => i.category !== CategoryEnum.REGISTRY);
-    const count = selected.length;
-    
-    return { selected, hasRegistry, hasNonRegistry, count };
-  }, [selectedIds, items]);
-
   const handleRegistryExport = (type: 'reg' | 'ps1' | 'bat') => {
     const selected = getSelectedItems();
     if (selected.length === 0) return;
@@ -236,12 +242,6 @@ const App: React.FC = () => {
       generateZipArchive(selected);
     }
   };
-
-  // Ensure selection is cleared when category changes
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [activeCategory]);
-
 
   const TabButton = ({ cat, label, icon: Icon }: { cat: CategoryType, label: string, icon: any }) => (
     <button
