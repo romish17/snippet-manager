@@ -116,9 +116,11 @@ const App: React.FC = () => {
 
   // Handle authentication
   const handleAuth = (token: string, user: any) => {
+    console.log('[App] handleAuth called with user:', user);
     setIsAuthenticated(true);
     setCurrentUser(user);
     setIsAdmin(user.role === 'admin');
+    // Don't set isLoading here, let the useEffect handle it
   };
 
   // Handle logout
@@ -133,8 +135,11 @@ const App: React.FC = () => {
 
   // If not authenticated, show auth page (AFTER all hooks)
   if (!isAuthenticated) {
+    console.log('[App] Not authenticated, showing AuthPage');
     return <AuthPage onAuth={handleAuth} />;
   }
+
+  console.log('[App] Rendering main app. isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin, 'items count:', items.length);
 
   // Handle Selection
   const toggleSelect = (id: string) => {
