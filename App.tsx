@@ -50,28 +50,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Handle authentication
-  const handleAuth = (token: string, user: any) => {
-    setIsAuthenticated(true);
-    setCurrentUser(user);
-    setIsAdmin(user.role === 'admin');
-  };
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-    setIsAdmin(false);
-    setItems([]);
-  };
-
-  // If not authenticated, show auth page
-  if (!isAuthenticated) {
-    return <AuthPage onAuth={handleAuth} />;
-  }
-
   // Load items (Async) - Only when authenticated
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -98,10 +76,10 @@ const App: React.FC = () => {
   // Note: In a real prod app, we would debounce this or save on specific actions
   // rather than every state change to avoid spamming the SQL DB.
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && isAuthenticated) {
         saveItems(items);
     }
-  }, [items, isLoading]);
+  }, [items, isLoading, isAuthenticated]);
 
   // Apply Theme
   useEffect(() => {
@@ -134,6 +112,28 @@ const App: React.FC = () => {
       return matchesCategory && matchesSearch;
     });
   }, [items, activeCategory, searchTerm]);
+
+  // Handle authentication
+  const handleAuth = (token: string, user: any) => {
+    setIsAuthenticated(true);
+    setCurrentUser(user);
+    setIsAdmin(user.role === 'admin');
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+    setIsAdmin(false);
+    setItems([]);
+  };
+
+  // If not authenticated, show auth page (AFTER all hooks)
+  if (!isAuthenticated) {
+    return <AuthPage onAuth={handleAuth} />;
+  }
 
   // Handle Selection
   const toggleSelect = (id: string) => {
