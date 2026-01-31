@@ -55,10 +55,13 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
 
     const fetchData = async () => {
+      console.log('[App] Starting to load items...');
       setIsLoading(true);
       const loaded = await loadItems();
+      console.log('[App] Items loaded:', loaded.length, 'items');
       setItems(loaded);
       setIsLoading(false);
+      console.log('[App] Loading complete');
     };
 
     fetchData();
