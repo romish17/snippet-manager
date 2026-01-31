@@ -35,42 +35,42 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Check authentication and load items
+  // Check authentication on mount only
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     const user = localStorage.getItem('user');
 
     if (token && user) {
-      // User is authenticated
       const userData = JSON.parse(user);
       setIsAuthenticated(true);
       setCurrentUser(userData);
       setIsAdmin(userData.role === 'admin');
-
-      // Load items
-      const fetchData = async () => {
-        console.log('[App] Starting to load items...');
-        setIsLoading(true);
-        const loaded = await loadItems();
-        console.log('[App] Items loaded:', loaded.length, 'items');
-        setItems(loaded);
-        setIsLoading(false);
-        console.log('[App] Loading complete');
-      };
-
-      fetchData();
-
-      // Load theme
-      const savedTheme = localStorage.getItem('app_theme') as Theme;
-      if (savedTheme) {
-        setTheme(savedTheme);
-      } else {
-        setTheme('default');
-      }
     } else {
-      // No authentication
       setIsLoading(false);
     }
+
+    // Load theme
+    const savedTheme = localStorage.getItem('app_theme') as Theme;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []); // Only run on mount
+
+  // Load items when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchData = async () => {
+      console.log('[App] Starting to load items...');
+      setIsLoading(true);
+      const loaded = await loadItems();
+      console.log('[App] Items loaded:', loaded.length, 'items');
+      setItems(loaded);
+      setIsLoading(false);
+      console.log('[App] Loading complete');
+    };
+
+    fetchData();
   }, [isAuthenticated]);
 
   // Save items
@@ -116,9 +116,11 @@ const App: React.FC = () => {
 
   // Handle authentication
   const handleAuth = (token: string, user: any) => {
+    console.log('[App] handleAuth called with user:', user);
     setIsAuthenticated(true);
     setCurrentUser(user);
     setIsAdmin(user.role === 'admin');
+    // Don't set isLoading here, let the useEffect handle it
   };
 
   // Handle logout
@@ -133,8 +135,11 @@ const App: React.FC = () => {
 
   // If not authenticated, show auth page (AFTER all hooks)
   if (!isAuthenticated) {
+    console.log('[App] Not authenticated, showing AuthPage');
     return <AuthPage onAuth={handleAuth} />;
   }
+
+  console.log('[App] Rendering main app. isLoading:', isLoading, 'isAuthenticated:', isAuthenticated, 'isAdmin:', isAdmin, 'items count:', items.length);
 
   // Handle Selection
   const toggleSelect = (id: string) => {
