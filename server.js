@@ -71,20 +71,37 @@ async function initDb() {
     await pool.query(createItemsTableQuery);
 
     // Migrations: Add missing columns if they don't exist
+    // MySQL doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN
+    // So we check first if the column exists
+
+    // Check and add registryName column
     try {
-      await pool.query(`
-        ALTER TABLE items
-        ADD COLUMN IF NOT EXISTS registryName VARCHAR(255) AFTER registryPath
-      `);
+      const [columns] = await pool.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'items' AND COLUMN_NAME = 'registryName'`,
+        [dbConfig.database]
+      );
+
+      if (columns.length === 0) {
+        await pool.query(`ALTER TABLE items ADD COLUMN registryName VARCHAR(255) AFTER registryPath`);
+        console.log('Migration: Added registryName column');
+      }
     } catch (migrationError) {
       console.log('Migration note (registryName):', migrationError.message);
     }
 
+    // Check and add userId column
     try {
-      await pool.query(`
-        ALTER TABLE items
-        ADD COLUMN IF NOT EXISTS userId VARCHAR(36)
-      `);
+      const [columns] = await pool.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'items' AND COLUMN_NAME = 'userId'`,
+        [dbConfig.database]
+      );
+
+      if (columns.length === 0) {
+        await pool.query(`ALTER TABLE items ADD COLUMN userId VARCHAR(36)`);
+        console.log('Migration: Added userId column');
+      }
     } catch (migrationError) {
       console.log('Migration note (userId):', migrationError.message);
     }
