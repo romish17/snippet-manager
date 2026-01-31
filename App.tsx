@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Terminal, Code, FileCode, LayoutGrid, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw, LogOut, User } from 'lucide-react';
+import { Plus, Search, Settings, Terminal, Code, FileCode, LayoutGrid, Shield, Eye, Lock, List, Download, Archive, FileText, Zap, Moon, Palette, StickyNote, RefreshCw, LogOut, User } from 'lucide-react';
 import { CategoryType, CategoryEnum, Item, ItemFormData } from './types';
 import { loadItems, saveItems } from './services/storageService';
 import { generateBatFile, generatePs1File, generateRegFile, generateZipArchive, downloadSingleItem } from './services/exportService';
 import ItemCard from './components/ItemCard';
 import ItemListView from './components/ItemListView';
-import EditModal from './components/EditModal';
+import ModularEditModal from './components/ModularEditModal';
+import ModuleSelector from './components/ModuleSelector';
+import ModuleSettings from './components/ModuleSettings';
 import ViewModal from './components/ViewModal';
 import AuthPage from './components/AuthPage';
+import { loadModuleConfig, saveModuleConfig, getEnabledModules, getModule, ModuleConfig } from './modules/moduleConfig';
 import { v4 as uuidv4 } from 'uuid';
 
 type Theme = 'default' | 'syntax' | 'cyberpunk-2077';
@@ -16,15 +19,14 @@ const App: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryType>('ALL');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [viewingItem, setViewingItem] = useState<Item | null>(null);
-  
+
   // View State
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAdmin, setIsAdmin] = useState(false);
   const [theme, setTheme] = useState<Theme>('default');
-  
+
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -34,6 +36,12 @@ const App: React.FC = () => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Module State
+  const [modules, setModules] = useState<Record<CategoryType, ModuleConfig>>(loadModuleConfig());
+  const [isModuleSelectorOpen, setIsModuleSelectorOpen] = useState(false);
+  const [isModuleSettingsOpen, setIsModuleSettingsOpen] = useState(false);
+  const [selectedModuleForEdit, setSelectedModuleForEdit] = useState<CategoryType | null>(null);
 
   // Check authentication on mount only
   useEffect(() => {
@@ -97,13 +105,30 @@ const App: React.FC = () => {
     setTheme(e.target.value as Theme);
   };
 
-  // Extract all unique tags from all items
-  const allTags = useMemo(() => {
-    const tagSet = new Set<string>();
+  // Extract tags by module (separate tags for each module type)
+  const tagsByModule = useMemo(() => {
+    const result: Record<CategoryType, string[]> = {
+      ALL: [],
+      CODE: [],
+      PROMPT: [],
+      REGISTRY: [],
+      NOTE: []
+    };
+
     items.forEach(item => {
-      item.tags.forEach(tag => tagSet.add(tag));
+      item.tags.forEach(tag => {
+        if (!result[item.category].includes(tag)) {
+          result[item.category].push(tag);
+        }
+      });
     });
-    return Array.from(tagSet).sort();
+
+    // Sort each module's tags
+    Object.keys(result).forEach(key => {
+      result[key as CategoryType] = result[key as CategoryType].sort();
+    });
+
+    return result;
   }, [items]);
 
   const filteredItems = useMemo(() => {
@@ -155,6 +180,30 @@ const App: React.FC = () => {
     setItems([]);
   };
 
+  // Handle module toggle
+  const handleToggleModule = (moduleId: CategoryType) => {
+    const updatedModules = {
+      ...modules,
+      [moduleId]: {
+        ...modules[moduleId],
+        enabled: !modules[moduleId].enabled
+      }
+    };
+    setModules(updatedModules);
+    saveModuleConfig(updatedModules);
+  };
+
+  // Handle module selection for creating new item
+  const handleSelectModule = (moduleId: CategoryType) => {
+    setSelectedModuleForEdit(moduleId);
+    setEditingItem(null);
+  };
+
+  // Get enabled modules for display
+  const enabledModules = useMemo(() => {
+    return getEnabledModules().filter(m => modules[m.id].enabled);
+  }, [modules]);
+
   // If not authenticated, show auth page (AFTER all hooks)
   if (!isAuthenticated) {
     console.log('[App] Not authenticated, showing AuthPage');
@@ -184,9 +233,9 @@ const App: React.FC = () => {
 
   const handleSaveItem = (data: ItemFormData) => {
     if (data.id) {
-      setItems(prev => prev.map(item => 
-        item.id === data.id 
-          ? { ...item, ...data, updatedAt: Date.now() } 
+      setItems(prev => prev.map(item =>
+        item.id === data.id
+          ? { ...item, ...data, updatedAt: Date.now() }
           : item
       ));
     } else {
@@ -198,6 +247,9 @@ const App: React.FC = () => {
       };
       setItems(prev => [newItem, ...prev]);
     }
+    // Close the modal after saving
+    setSelectedModuleForEdit(null);
+    setEditingItem(null);
   };
 
   const handleDeleteItem = (id: string) => {
@@ -213,13 +265,17 @@ const App: React.FC = () => {
   };
 
   const openNewModal = () => {
-    setEditingItem(null);
-    setIsModalOpen(true);
+    setIsModuleSelectorOpen(true);
   };
 
   const openEditModal = (item: Item) => {
     setEditingItem(item);
-    setIsModalOpen(true);
+    setSelectedModuleForEdit(item.category);
+  };
+
+  const closeModularEditModal = () => {
+    setSelectedModuleForEdit(null);
+    setEditingItem(null);
   };
 
   // Export handlers
@@ -333,13 +389,24 @@ const App: React.FC = () => {
               </button>
 
               {isAdmin && (
-                <button
-                  onClick={openNewModal}
-                  className="flex items-center gap-2 bg-primary hover:bg-opacity-80 text-white sm:text-slate-900 px-4 py-2 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 active:scale-95"
-                >
-                  <Plus size={20} />
-                  <span className="hidden sm:inline">Ajouter</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsModuleSettingsOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border bg-slate-800 text-slate-300 border-slate-700 hover:text-white hover:border-slate-600"
+                    title="Configuration des modules"
+                  >
+                    <Settings size={18} />
+                    <span className="hidden lg:inline">Modules</span>
+                  </button>
+
+                  <button
+                    onClick={openNewModal}
+                    className="flex items-center gap-2 bg-primary hover:bg-opacity-80 text-white sm:text-slate-900 px-4 py-2 rounded-lg font-bold transition-all shadow-lg shadow-primary/20 active:scale-95"
+                  >
+                    <Plus size={20} />
+                    <span className="hidden sm:inline">Ajouter</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -353,10 +420,14 @@ const App: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
                 <TabButton cat="ALL" label="Tout" icon={LayoutGrid} />
-                <TabButton cat={CategoryEnum.PROMPT} label="Prompts IA" icon={Terminal} />
-                <TabButton cat={CategoryEnum.CODE} label="Code" icon={Code} />
-                <TabButton cat={CategoryEnum.REGISTRY} label="Registre" icon={FileCode} />
-                <TabButton cat={CategoryEnum.NOTE} label="Notes" icon={StickyNote} />
+                {enabledModules.map(module => (
+                  <TabButton
+                    key={module.id}
+                    cat={module.id}
+                    label={module.name}
+                    icon={module.icon}
+                  />
+                ))}
             </div>
             
             <div className="flex items-center gap-3 w-full md:w-auto justify-end">
@@ -494,15 +565,32 @@ const App: React.FC = () => {
       )}
 
       {/* Modals */}
-      <EditModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveItem}
-        initialData={editingItem}
-        existingTags={allTags}
+      <ModuleSelector
+        isOpen={isModuleSelectorOpen}
+        onClose={() => setIsModuleSelectorOpen(false)}
+        modules={enabledModules}
+        onSelectModule={handleSelectModule}
       />
-      
-      <ViewModal 
+
+      <ModuleSettings
+        isOpen={isModuleSettingsOpen}
+        onClose={() => setIsModuleSettingsOpen(false)}
+        modules={modules}
+        onToggleModule={handleToggleModule}
+      />
+
+      {selectedModuleForEdit && (
+        <ModularEditModal
+          isOpen={true}
+          onClose={closeModularEditModal}
+          onSave={handleSaveItem}
+          initialData={editingItem}
+          module={getModule(selectedModuleForEdit)}
+          existingTags={tagsByModule[selectedModuleForEdit]}
+        />
+      )}
+
+      <ViewModal
         item={viewingItem}
         onClose={() => setViewingItem(null)}
         onEdit={(item) => {
